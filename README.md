@@ -6,15 +6,15 @@ Este proyecto utiliza GANs (Generative Adversarial Networks) para generar anunci
 
 1. Instala las dependencias:
    
-´´´
+```sh
 pip install -r requirements.txt
-´´´
+```
 
 3. Ejecuta la aplicación:
    
-´´´
+```sh
 streamlit run app.py
-´´´
+```
 
 ## Estructura del Proyecto
 
