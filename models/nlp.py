@@ -1,5 +1,5 @@
 import os
-from openai import OpenAI
+from openai import OpenAI, OpenAIError
 from dotenv import load_dotenv
 
 # Cargar variables de entorno desde el archivo .env
@@ -11,13 +11,17 @@ client = OpenAI(
 )
 
 def generate_text(prompt):
-    chat_completion = client.chat.completions.create(
-        messages=[
-            {
-                "role": "user",
-                "content": prompt,
-            }
-        ],
-        model="gpt-3.5-turbo",
-    )
-    return chat_completion.choices[0].message['content']
+    try:
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ],
+            model="gpt-3.5-turbo",
+        )
+        return chat_completion.choices[0].message['content']
+    except OpenAIError as e:
+        print(f"OpenAIError: {e}")
+        return "Error: No se pudo generar el texto debido a un problema con la cuota de la API."
