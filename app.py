@@ -5,6 +5,7 @@ import tensorflow as tf
 import os
 from models.generator import build_generator
 from utils.data_loader import save_images
+from models.nlp import generate_text  # Importar la función desde nlp.py
 
 # Configuraciones del generador
 SEED_SIZE = 100
@@ -14,7 +15,6 @@ CHANNELS = 3
 # Crear el modelo generador
 generator = build_generator(SEED_SIZE, CHANNELS)
 generator.load_weights('generator_weights.weights.h5')  # Ruta a los pesos entrenados del generador
-
 
 # Función para generar una imagen del anuncio
 def generate_ad(prompt, color, punchline, punchline_color, button_text, button_color, base_image, logo_image):
@@ -64,7 +64,13 @@ if st.button("Generar Anuncio"):
     if base_image is not None and logo_image is not None:
         base_image = Image.open(base_image)
         logo_image = Image.open(logo_image)
-        ad_image = generate_ad(prompt, color, punchline, punchline_color, button_text, button_color, base_image, logo_image)
-        st.image(ad_image, caption="Anuncio Generado", use_column_width=True)
+        
+        # Obtener texto generado por OpenAI
+        generated_punchline = generate_text(prompt)
+        
+        ad_image = generate_ad(prompt, color, generated_punchline, punchline_color, button_text, button_color, base_image, logo_image)
+        
+        # Mostrar la imagen generada debajo del botón
+        st.image(ad_image, caption="Anuncio Generado", width=IMAGE_SIZE)
     else:
         st.error("Por favor, suba una imagen base y un logo.")

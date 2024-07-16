@@ -23,7 +23,7 @@ SEED_SIZE = 100
 EPOCHS = 50
 BATCH_SIZE = 32
 BUFFER_SIZE = 60000
-DATA_PATH = 'ad-gen/images'  # Asegúrate de tener una carpeta llamada 'images' con imágenes de anuncios publicitarios
+DATA_PATH = 'images'  # Asegúrate de tener una carpeta llamada 'images' con imágenes de anuncios publicitarios
 
 # Preparación y procesamiento de los datos
 training_binary_path = os.path.join(DATA_PATH, f'training_data_{GENERATE_SQUARE}_{GENERATE_SQUARE}.npy')
@@ -225,5 +225,5 @@ def train(dataset, epochs):
 train(train_dataset, EPOCHS)
 
 # Al final del script de entrenamiento, guarda los pesos en el directorio 'ad-gen'
-weights_path = os.path.join('ad-gen', 'generator_weights.weights.h5')
+weights_path = os.path.join('generator_weights.weights.h5')
 generator.save_weights(weights_path)
