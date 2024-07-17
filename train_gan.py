@@ -20,10 +20,15 @@ def hms_string(sec_elapsed):
 GENERATE_SQUARE = 470  # Dimensión deseada
 IMAGE_CHANNELS = 4  # Cambiado a 4 para manejar RGBA
 SEED_SIZE = 100
-EPOCHS = 100
+EPOCHS = 10
 BATCH_SIZE = 32
+SAVE_INTERVAL = 5 #Guarda Puntos de Control
 BUFFER_SIZE = 60000
 DATA_PATH = 'images'
+
+# Verdades básicas adversarias
+valid = np.ones((BATCH_SIZE, 1))
+fake = np.zeros((BATCH_SIZE, 1))
 
 # Preparación y procesamiento de los datos
 training_binary_path = os.path.join(DATA_PATH, f'training_data_{GENERATE_SQUARE}_{GENERATE_SQUARE}.npy')
@@ -176,12 +181,28 @@ generator_optimizer = tf.keras.optimizers.Adam(1.5e-4, 0.5)
 discriminator_optimizer = tf.keras.optimizers.Adam(1.5e-4, 0.5)
 
 # Configuración de checkpoints
-checkpoint_dir = './training_checkpoints'
-checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt")
-checkpoint = tf.train.Checkpoint(generator_optimizer=generator_optimizer,
-                                 discriminator_optimizer=discriminator_optimizer,
-                                 generator=generator,
-                                 discriminator=discriminator)
+checkpoint_dir = 'checkpoints'
+if not os.path.exists(checkpoint_dir):
+    os.makedirs(checkpoint_dir)
+
+# Buscar el último checkpoint
+checkpoints = [f for f in os.listdir(checkpoint_dir) if f.startswith('gan_epoch_') and f.endswith('.weights.h5')]
+latest_checkpoint = max(checkpoints, key=lambda x: int(x.split('_')[2].split('.')[0])) if checkpoints else None
+
+# Inicializar la época inicial
+initial_epoch = 0
+
+if latest_checkpoint:
+    latest_checkpoint_path = os.path.join(checkpoint_dir, latest_checkpoint)
+    print("Checkpoint encontrado:", latest_checkpoint_path)
+    # Cargar los pesos del generador
+    generator.load_weights(latest_checkpoint_path)
+    
+    # Extraer el número de época del nombre del archivo
+    initial_epoch = int(latest_checkpoint.split('_')[2].split('.')[0])
+    print(f"Continuando el entrenamiento desde la época {initial_epoch}")
+else:
+    print("No se ha encontrado ningún checkpoint, empezando desde cero.")
 
 # Función de entrenamiento
 @tf.function
@@ -213,7 +234,7 @@ def train(dataset, epochs):
     fixed_seed = np.random.normal(0, 1, (1, SEED_SIZE))
     start = time.time()
 
-    for epoch in range(epochs):
+    for epoch in range(initial_epoch, epochs):
         epoch_start = time.time()
         gen_loss_list = []
         disc_loss_list = []
@@ -232,8 +253,8 @@ def train(dataset, epochs):
             save_images(epoch, fixed_seed)
 
             # Guardar checkpoint
-            if (epoch + 1) % 10 == 0:
-                checkpoint.save(file_prefix=checkpoint_prefix)
+            if (epoch + 1) % SAVE_INTERVAL == 0:
+                generator.save_weights(f"{checkpoint_dir}/gan_epoch_{epoch + 1}.weights.h5")
         else:
             print(f'Epoch {epoch + 1} skipped due to empty loss list.')
 
@@ -241,8 +262,4 @@ def train(dataset, epochs):
     print(f'Training time: {hms_string(elapsed)}')
 
 # Entrenar el modelo
-train(train_dataset, EPOCHS)
-
-# Al final del script de entrenamiento, guarda los pesos en el directorio 'ad-gen'
-weights_path = os.path.join('ad-gen', 'generator_weights.weights.h5')
-generator.save_weights(weights_path)
+train(train_dataset, EPOCHS + initial_epoch)
