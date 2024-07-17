@@ -14,7 +14,7 @@ CHANNELS = 3
 
 # Crear el modelo generador
 generator = build_generator(SEED_SIZE, CHANNELS)
-generator.load_weights('generator_weights.weights.h5')  # Ruta a los pesos entrenados del generador
+generator.load_weights('ad-gen/generator_weights.weights.h5')  # Ruta a los pesos entrenados del generador
 
 # Función para generar una imagen del anuncio
 def generate_ad(prompt, color, punchline, punchline_color, button_text, button_color, base_image, logo_image):
