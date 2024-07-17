@@ -5,7 +5,7 @@ import tensorflow as tf
 import os
 from models.generator import build_generator
 from utils.data_loader import save_images
-from models.nlp import generate_text  # Importar la función desde nlp.py
+from models.nlp import generate_text
 
 # Configuraciones del generador
 SEED_SIZE = 100
@@ -14,10 +14,14 @@ CHANNELS = 3
 
 # Crear el modelo generador
 generator = build_generator(SEED_SIZE, CHANNELS)
-generator.load_weights('ad-gen/generator_weights.weights.h5')  # Ruta a los pesos entrenados del generador
+generator.load_weights('ad-gen/generator_weights.weights.h5')
 
 # Función para generar una imagen del anuncio
 def generate_ad(prompt, color, punchline, punchline_color, button_text, button_color, base_image, logo_image):
+    # Generar texto con NLP si no se proporciona un punchline
+    if not punchline:
+        punchline = generate_text(prompt)
+
     # Generar la imagen base con la GAN
     seed = np.random.normal(0, 1, (1, SEED_SIZE))
     generated_image = generator.predict(seed)
@@ -36,7 +40,7 @@ def generate_ad(prompt, color, punchline, punchline_color, button_text, button_c
 
     # Dibujar el punchline y el botón
     draw = ImageDraw.Draw(ad_image)
-    font = ImageFont.load_default()
+    font = ImageFont.truetype("arial.ttf", 20)  # Asegúrate de tener una fuente instalada
 
     # Dibujar punchline
     draw.text((10, 10), punchline, fill=punchline_color, font=font)
@@ -47,13 +51,13 @@ def generate_ad(prompt, color, punchline, punchline_color, button_text, button_c
     button_height = button_bbox[3] - button_bbox[1]
 
     # Dibujar botón
-    draw.rectangle([10, ad_image.height - 30, 10 + button_width, ad_image.height - 10], fill=button_color)
-    draw.text((10, ad_image.height - 30), button_text, fill=(255, 255, 255), font=font)
+    draw.rectangle([10, ad_image.height - 40, 10 + button_width + 20, ad_image.height - 10], fill=button_color)
+    draw.text((20, ad_image.height - 35), button_text, fill=(255, 255, 255), font=font)
 
     return ad_image
 
 # Definir la interfaz de usuario
-st.set_page_config(layout="wide")  # Configurar la página a ancho completo
+st.set_page_config(layout="wide")
 
 # Sidebar
 st.sidebar.title("PUBLICIDAD - GAN")
@@ -65,7 +69,6 @@ st.sidebar.markdown("**Botón:**\n- ¡La filosofía es divertida!")
 st.sidebar.markdown("**Color:**\n- Rojo")
 
 # Parámetros
-# Parámetros
 st.markdown("<h1 style='text-align: center;'>ANUNCIOS PUBLICITARIOS - GAN</h1>", unsafe_allow_html=True)
 st.markdown("""---""")
 st.subheader("Parámetros")
@@ -74,8 +77,8 @@ col1, col2, col3 = st.columns([2, 1, 2])
 
 with col1:
     prompt = st.text_area("Prompt:", "Ingrese un prompt para el anuncio")
-    punchline = st.text_area("Frase:")
-    button_text = st.text_area("Texto del botón:")
+    punchline = st.text_area("Frase (opcional):", "")
+    button_text = st.text_input("Texto del botón:", "¡Haz clic aquí!")
 
 with col2:
     color = st.color_picker("Color para la imagen generada:", "#ffffff")
@@ -88,7 +91,7 @@ with col3:
     if base_image:
         st.image(Image.open(base_image), width=150)
     st.write("Vista previa del logo:")
-    logo_image = st.file_uploader("Suba un logo con fondo blanco:", type=["jpg", "jpeg", "png"])
+    logo_image = st.file_uploader("Suba un logo con fondo transparente:", type=["png"])
     if logo_image:
         st.image(Image.open(logo_image), width=150)
 
@@ -97,12 +100,21 @@ if st.button("¡Generar Anuncio!"):
         base_image = Image.open(base_image)
         logo_image = Image.open(logo_image)
         
-        # Obtener texto generado localmente
-        generated_punchline = generate_text(prompt)
-        
-        ad_image = generate_ad(prompt, color, generated_punchline, punchline_color, button_text, button_color, base_image, logo_image)
+        with st.spinner('Generando anuncio...'):
+            ad_image = generate_ad(prompt, color, punchline, punchline_color, button_text, button_color, base_image, logo_image)
         
         # Mostrar la imagen generada debajo del botón
-        st.image(ad_image, caption="Anuncio Generado", width=IMAGE_SIZE)
+        st.image(ad_image, caption="Anuncio Generado", use_column_width=True)
+        
+        # Opción para descargar la imagen
+        buf = io.BytesIO()
+        ad_image.save(buf, format="PNG")
+        byte_im = buf.getvalue()
+        st.download_button(
+            label="Descargar Anuncio",
+            data=byte_im,
+            file_name="anuncio_generado.png",
+            mime="image/png"
+        )
     else:
         st.error("Por favor, suba una imagen base y un logo.")
