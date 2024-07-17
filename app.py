@@ -60,25 +60,26 @@ st.sidebar.title("PUBLICIDAD - GAN")
 st.sidebar.write("¡La publicidad generativa es el futuro de la publicidad!")
 st.sidebar.subheader("Ejemplo de Entradas:")
 st.sidebar.markdown("**Prompt:**\n- Una taza de café de cartón en la mesa")
-st.sidebar.markdown("**Punchline:**\n- La creatividad es ver lo que otros ven y pensar lo que nadie más ha pensado.")
+st.sidebar.markdown("**Frase:**\n- La creatividad es ver lo que otros ven y pensar lo que nadie más ha pensado.")
 st.sidebar.markdown("**Botón:**\n- ¡La filosofía es divertida!")
 st.sidebar.markdown("**Color:**\n- Rojo")
 
 # Parámetros
 # Parámetros
 st.markdown("<h1 style='text-align: center;'>ANUNCIOS PUBLICITARIOS - GAN</h1>", unsafe_allow_html=True)
+st.markdown("""---""")
 st.subheader("Parámetros")
 
 col1, col2, col3 = st.columns([2, 1, 2])
 
 with col1:
-    prompt = st.text_input("Prompt:", "Ingrese un prompt para el anuncio")
-    punchline = st.text_input("Punchline:")
-    button_text = st.text_input("Texto del botón:")
+    prompt = st.text_area("Prompt:", "Ingrese un prompt para el anuncio")
+    punchline = st.text_area("Frase:")
+    button_text = st.text_area("Texto del botón:")
 
 with col2:
     color = st.color_picker("Color para la imagen generada:", "#ffffff")
-    punchline_color = st.color_picker("Color del punchline:", "#000000")
+    punchline_color = st.color_picker("Color de la frase:", "#000000")
     button_color = st.color_picker("Color del botón:", "#00ff00")
 
 with col3:
