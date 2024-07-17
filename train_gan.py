@@ -263,3 +263,7 @@ def train(dataset, epochs):
 
 # Entrenar el modelo
 train(train_dataset, EPOCHS + initial_epoch)
+
+# Al final del script de entrenamiento, guarda los pesos en el directorio 'ad-gen'
+weights_path = os.path.join('ad-gen', 'generator_weights.weights.h5')
+generator.save_weights(weights_path)
