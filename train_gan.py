@@ -69,10 +69,10 @@ for batch in train_dataset:
     print(f"Batch shape: {batch.shape}")
     break
 
-# Creación del generador
 def build_generator(seed_size, channels):
     model = Sequential()
-    model.add(Dense(15*15*256, activation="relu", input_dim=seed_size))
+    model.add(Input(shape=(seed_size,)))  # Usar Input(shape) en lugar de input_dim
+    model.add(Dense(15*15*256, activation="relu"))
     model.add(Reshape((15, 15, 256)))
 
     model.add(UpSampling2D())

@@ -161,3 +161,32 @@ OPENAI_API_KEY
 __pycache__/
 *.pb
 checkpoint
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+
+# Torch
+.cache/torch/
+.cache/huggingface/
+
+# Python dependencies
+pip-wheel-metadata/
+pip-log.txt
+pip-delete-this-directory.txt
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.whl
+*.egg
+*.egg-info
+dist
+build
+site
+.venv
+.env
+.venv.bak
+.env.bak

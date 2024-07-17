@@ -1,10 +1,10 @@
-import tensorflow as tf
-from tensorflow.keras.layers import Dense, Reshape, UpSampling2D, Conv2D, BatchNormalization, Activation
+from tensorflow.keras.layers import Input, Reshape, Dropout, Dense, Flatten, BatchNormalization, Activation, ZeroPadding2D, LeakyReLU, UpSampling2D, Conv2D
 from tensorflow.keras.models import Sequential
 
 def build_generator(seed_size, channels):
     model = Sequential()
-    model.add(Dense(15*15*256, activation="relu", input_dim=seed_size))
+    model.add(Input(shape=(seed_size,)))  # Usar Input(shape) en lugar de input_dim
+    model.add(Dense(15*15*256, activation="relu"))
     model.add(Reshape((15, 15, 256)))
 
     model.add(UpSampling2D())
