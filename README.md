@@ -10,11 +10,6 @@ Este proyecto utiliza GANs (Generative Adversarial Networks) para generar anunci
 pip install -r requirements.txt
 ```
 
-2. Crea el archivo .env en el directorio raíz y agrega tu clave de API:
-   
-```sh
-OPENAI_API_KEY=tu_clave_api
-```
 
 3. Entrenamiento del Modelo
 
