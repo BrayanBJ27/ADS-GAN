@@ -18,12 +18,12 @@ def hms_string(sec_elapsed):
 
 # Configuraciones
 GENERATE_SQUARE = 470  # Dimensión deseada
-IMAGE_CHANNELS = 3
+IMAGE_CHANNELS = 4  # Cambiado a 4 para manejar RGBA
 SEED_SIZE = 100
-EPOCHS = 50
+EPOCHS = 100
 BATCH_SIZE = 32
 BUFFER_SIZE = 60000
-DATA_PATH = 'images'  # Asegúrate de tener una carpeta llamada 'images' con imágenes de anuncios publicitarios
+DATA_PATH = 'images'
 
 # Preparación y procesamiento de los datos
 training_binary_path = os.path.join(DATA_PATH, f'training_data_{GENERATE_SQUARE}_{GENERATE_SQUARE}.npy')
@@ -35,31 +35,45 @@ if not os.path.isfile(training_binary_path):
 
     training_data = []
     ad_path = os.path.join(DATA_PATH)
+    total_files = len([name for name in os.listdir(ad_path) if os.path.isfile(os.path.join(ad_path, name))])
+    print(f"Total files found: {total_files}")
+
     for filename in tqdm(os.listdir(ad_path)):
         path = os.path.join(ad_path, filename)
-        image = Image.open(path)
-        if image.size != (GENERATE_SQUARE, GENERATE_SQUARE):
-            image = image.resize((GENERATE_SQUARE, GENERATE_SQUARE), Image.Resampling.LANCZOS)
-        image_array = np.asarray(image)
-        if image_array.shape == (GENERATE_SQUARE, GENERATE_SQUARE, IMAGE_CHANNELS):
-            training_data.append(image_array)
-        else:
-            print(f"Skipping image {filename} due to incorrect shape: {image_array.shape}")
+        try:
+            image = Image.open(path)
+            if image.size != (GENERATE_SQUARE, GENERATE_SQUARE):
+                image = image.resize((GENERATE_SQUARE, GENERATE_SQUARE), Image.Resampling.LANCZOS)
+            # Convertir a RGB si es necesario
+            if image.mode != 'RGB':
+                image = image.convert('RGB')
+            image_array = np.asarray(image)
+            if image_array.shape == (GENERATE_SQUARE, GENERATE_SQUARE, 3):
+                training_data.append(image_array)
+            else:
+                print(f"Skipping image {filename} due to incorrect shape: {image_array.shape}")
+        except Exception as e:
+            print(f"Error loading image {filename}: {str(e)}")
 
-    training_data = np.array(training_data)
-    training_data = training_data.astype(np.float32)
-    training_data = training_data / 127.5 - 1.
+    print(f"Successfully loaded {len(training_data)} images")
 
-    print("Saving training image binary...")
-    np.save(training_binary_path, training_data)
-    elapsed = time.time() - start
-    print(f'Image preprocess time: {hms_string(elapsed)}')
+    if len(training_data) > 0:
+        training_data = np.array(training_data)
+        training_data = training_data.astype(np.float32)
+        training_data = training_data / 127.5 - 1.
+
+        print("Saving training image binary...")
+        np.save(training_binary_path, training_data)
+        elapsed = time.time() - start
+        print(f'Image preprocess time: {hms_string(elapsed)}')
+    else:
+        print("No valid images found. Please check your data directory.")
+        exit(1)
 else:
     print("Loading previous training binary...")
     training_data = np.load(training_binary_path)
 
-# Verificar que training_data no esté vacío
-print(f"Training data shape: {training_data.shape}")
+print(f"Final training data shape: {training_data.shape}")
 
 # Batch and shuffle the data
 train_dataset = tf.data.Dataset.from_tensor_slices(training_data).shuffle(BUFFER_SIZE).batch(BATCH_SIZE)
@@ -71,14 +85,9 @@ for batch in train_dataset:
 
 def build_generator(seed_size, channels):
     model = Sequential()
-    model.add(Input(shape=(seed_size,)))  # Usar Input(shape) en lugar de input_dim
-    model.add(Dense(15*15*256, activation="relu"))
-    model.add(Reshape((15, 15, 256)))
-
-    model.add(UpSampling2D())
-    model.add(Conv2D(256, kernel_size=3, padding="same"))
-    model.add(BatchNormalization(momentum=0.8))
-    model.add(Activation("relu"))
+    model.add(Input(shape=(seed_size,)))
+    model.add(Dense(30*30*256, activation="relu"))
+    model.add(Reshape((30, 30, 256)))
 
     model.add(UpSampling2D())
     model.add(Conv2D(256, kernel_size=3, padding="same"))
@@ -90,28 +99,24 @@ def build_generator(seed_size, channels):
     model.add(BatchNormalization(momentum=0.8))
     model.add(Activation("relu"))
 
-    if 470 > 1:
-        model.add(UpSampling2D(size=(15, 15)))
-        model.add(Conv2D(128, kernel_size=3, padding="same"))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(Activation("relu"))
+    model.add(UpSampling2D())
+    model.add(Conv2D(64, kernel_size=3, padding="same"))
+    model.add(BatchNormalization(momentum=0.8))
+    model.add(Activation("relu"))
 
+    model.add(UpSampling2D(size=(2,2)))
     model.add(Conv2D(channels, kernel_size=3, padding="same"))
     model.add(Activation("tanh"))
 
+    # Crop to 470x470
+    model.add(tf.keras.layers.Cropping2D(cropping=((5, 5), (5, 5))))
+
     return model
 
-# Creación del discriminador
 def build_discriminator(image_shape):
     model = Sequential()
 
-    model.add(Conv2D(32, kernel_size=3, strides=2, input_shape=image_shape, padding="same"))
-    model.add(LeakyReLU(alpha=0.2))
-    model.add(Dropout(0.25))
-
-    model.add(Conv2D(64, kernel_size=3, strides=2, padding="same"))
-    model.add(ZeroPadding2D(padding=((0, 1), (0, 1))))
-    model.add(BatchNormalization(momentum=0.8))
+    model.add(Conv2D(64, kernel_size=3, strides=2, input_shape=image_shape, padding="same"))
     model.add(LeakyReLU(alpha=0.2))
     model.add(Dropout(0.25))
 
@@ -135,22 +140,21 @@ def build_discriminator(image_shape):
 
     return model
 
-# Guardar imágenes generadas
 def save_images(cnt, noise):
-    image_array = np.full((GENERATE_SQUARE, GENERATE_SQUARE, IMAGE_CHANNELS), 255, dtype=np.uint8)
-
     generated_images = generator.predict(noise)
     generated_images = 0.5 * generated_images + 0.5
 
-    image_array[0:GENERATE_SQUARE, 0:GENERATE_SQUARE] = generated_images[0] * 255
+    for i in range(generated_images.shape[0]):
+        image = generated_images[i] * 255
+        image = image.astype(np.uint8)
+        im = Image.fromarray(image)
+        
+        output_path = os.path.join(DATA_PATH, 'output')
+        if not os.path.exists(output_path):
+            os.makedirs(output_path)
 
-    output_path = os.path.join(DATA_PATH, 'output')
-    if not os.path.exists(output_path):
-        os.makedirs(output_path)
-
-    filename = os.path.join(output_path, f"train-{cnt}.png")
-    im = Image.fromarray(image_array)
-    im.save(filename)
+        filename = os.path.join(output_path, f"train-{cnt}-{i}.png")
+        im.save(filename)
 
 # Creación del generador y discriminador
 generator = build_generator(SEED_SIZE, IMAGE_CHANNELS)
@@ -171,6 +175,14 @@ def generator_loss(fake_output):
 generator_optimizer = tf.keras.optimizers.Adam(1.5e-4, 0.5)
 discriminator_optimizer = tf.keras.optimizers.Adam(1.5e-4, 0.5)
 
+# Configuración de checkpoints
+checkpoint_dir = './training_checkpoints'
+checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt")
+checkpoint = tf.train.Checkpoint(generator_optimizer=generator_optimizer,
+                                 discriminator_optimizer=discriminator_optimizer,
+                                 generator=generator,
+                                 discriminator=discriminator)
+
 # Función de entrenamiento
 @tf.function
 def train_step(images):
@@ -178,6 +190,9 @@ def train_step(images):
 
     with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
         generated_images = generator(seed, training=True)
+        
+        # Asegúrate de que las imágenes generadas tengan el tamaño correcto
+        generated_images = tf.image.resize(generated_images, [GENERATE_SQUARE, GENERATE_SQUARE])
 
         real_output = discriminator(images, training=True)
         fake_output = discriminator(generated_images, training=True)
@@ -185,11 +200,11 @@ def train_step(images):
         gen_loss = generator_loss(fake_output)
         disc_loss = discriminator_loss(real_output, fake_output)
 
-        gradients_of_generator = gen_tape.gradient(gen_loss, generator.trainable_variables)
-        gradients_of_discriminator = disc_tape.gradient(disc_loss, discriminator.trainable_variables)
+    gradients_of_generator = gen_tape.gradient(gen_loss, generator.trainable_variables)
+    gradients_of_discriminator = disc_tape.gradient(disc_loss, discriminator.trainable_variables)
 
-        generator_optimizer.apply_gradients(zip(gradients_of_generator, generator.trainable_variables))
-        discriminator_optimizer.apply_gradients(zip(gradients_of_discriminator, discriminator.trainable_variables))
+    generator_optimizer.apply_gradients(zip(gradients_of_generator, generator.trainable_variables))
+    discriminator_optimizer.apply_gradients(zip(gradients_of_discriminator, discriminator.trainable_variables))
 
     return gen_loss, disc_loss
 
@@ -215,6 +230,10 @@ def train(dataset, epochs):
             epoch_elapsed = time.time() - epoch_start
             print(f'Epoch {epoch + 1}, gen loss={g_loss}, disc loss={d_loss}, {hms_string(epoch_elapsed)}')
             save_images(epoch, fixed_seed)
+
+            # Guardar checkpoint
+            if (epoch + 1) % 10 == 0:
+                checkpoint.save(file_prefix=checkpoint_prefix)
         else:
             print(f'Epoch {epoch + 1} skipped due to empty loss list.')
 
