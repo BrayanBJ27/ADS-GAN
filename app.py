@@ -6,15 +6,26 @@ import os
 from models.generator import build_generator
 from utils.data_loader import save_images
 from models.nlp import generate_text
+import io
 
 # Configuraciones del generador
 SEED_SIZE = 100
 IMAGE_SIZE = 470
-CHANNELS = 3
+CHANNELS = 4
 
 # Crear el modelo generador
 generator = build_generator(SEED_SIZE, CHANNELS)
-generator.load_weights('ad-gen/generator_weights.weights.h5')
+
+# Buscar el último checkpoint
+checkpoint_dir = 'checkpoints'
+checkpoints = [f for f in os.listdir(checkpoint_dir) if f.startswith('gan_epoch_') and f.endswith('.weights.h5')]
+if checkpoints:
+    latest_checkpoint = max(checkpoints, key=lambda x: int(x.split('_')[2].split('.')[0]))
+    latest_checkpoint_path = os.path.join(checkpoint_dir, latest_checkpoint)
+    print("Cargando el último checkpoint:", latest_checkpoint_path)
+    generator.load_weights(latest_checkpoint_path)
+else:
+    print("No se encontraron checkpoints. El generador usará pesos inicializados aleatoriamente.")
 
 # Función para generar una imagen del anuncio
 def generate_ad(prompt, color, punchline, punchline_color, button_text, button_color, base_image, logo_image):
