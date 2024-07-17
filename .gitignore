@@ -160,5 +160,4 @@ OPENAI_API_KEY
 # TensorFlow
 __pycache__/
 *.pb
-*.h5
 checkpoint
