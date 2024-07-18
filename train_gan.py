@@ -20,9 +20,9 @@ def hms_string(sec_elapsed):
 GENERATE_SQUARE = 470  # Dimensión deseada
 IMAGE_CHANNELS = 4  # Cambiado a 4 para manejar RGBA
 SEED_SIZE = 100
-EPOCHS = 10
+EPOCHS = 100
 BATCH_SIZE = 32
-SAVE_INTERVAL = 5 #Guarda Puntos de Control
+SAVE_INTERVAL = 50 #Guarda Puntos de Control
 BUFFER_SIZE = 60000
 DATA_PATH = 'images'
 
