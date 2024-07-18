@@ -2,6 +2,12 @@
 
 Este proyecto utiliza GANs (Generative Adversarial Networks) para generar anuncios publicitarios a partir de un prompt dado por el usuario y varios parámetros personalizados.
 
+# Integrantes
+- Davila Brayan
+- Garzon Edgar
+- Mendez Pablo
+- Pallo Christopher
+
 ## Instrucciones de Uso
 
 1. Instala las dependencias:
