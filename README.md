@@ -32,6 +32,6 @@ streamlit run app.py
 ## Estructura del Proyecto
 - `ad-gen`: Carpeta donde se guarda en archivo binario de entrenaminto.
 - `app.py`: Interfaz de usuario con Streamlit.
-- `models/`: Contiene los modelos de GAN y NLP.
+- `models/`: Contiene los modelos de GAN.
 - `utils/`: Contiene utilidades para cargar datos y preprocesamiento.
 - `requiriments`: Contiene las librerías y dependencias requeridas.
